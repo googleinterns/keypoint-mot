@@ -8,9 +8,9 @@ DATASET_ROOT = {'nuscenes': DIR_NUSCENES}
 TRAIN_RESOLUTION = {'nuscenes': Resolution(height=448, width=800)}
 
 
-def _get_dataset_param(dataset, dict):
-    if dataset in dict:
-        return dict
+def _get_dataset_param(dataset, all_params):
+    if dataset in all_params:
+        return all_params[dataset]
 
     raise ValueError(f'Unknown dataset: {dataset}')
 

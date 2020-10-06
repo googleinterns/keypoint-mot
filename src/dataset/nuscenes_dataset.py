@@ -1,0 +1,22 @@
+from nuscenes import NuScenes
+from nuscenes.utils.splits import create_splits_scenes
+
+
+class NuscenesDataset:
+    version = '1.0'
+
+    def __init__(self, subset, dataset_root, mini_version: bool):
+        self.nusc = self.__get_nuscenes_instance(subset, dataset_root, mini_version)
+        scene_names = create_splits_scenes()[f'mini_{subset}' if mini_version else subset]
+        self.scenes = [scene for scene in self.nusc.scene if scene['name'] in scene_names]
+
+    def __get_nuscenes_instance(self, subset, dataset_root, mini):
+        if subset in ['train', 'val']:
+            suffix = 'trainval'
+        else:
+            suffix = 'test'
+
+        if mini:
+            suffix = 'mini'
+
+        return NuScenes(version=f'v{NuscenesDataset.version}-{suffix}', dataroot=dataset_root)

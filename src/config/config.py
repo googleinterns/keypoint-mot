@@ -1,10 +1,10 @@
-from collections import namedtuple
+import collections
 
-from config.paths import DIR_NUSCENES
+from config import paths
 
-Resolution = namedtuple('Resolution', ['height', 'width'])
+Resolution = collections.namedtuple('Resolution', ['height', 'width'])
 
-DATASET_ROOT = {'nuscenes': DIR_NUSCENES}
+DATASET_ROOT = {'nuscenes': paths.DIR_NUSCENES}
 TRAIN_RESOLUTION = {'nuscenes': Resolution(height=448, width=800)}
 
 

@@ -12,7 +12,7 @@ class NuscenesDataset(generic_dataset.GenericDataset):
     sensors = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']
 
     def __init__(self, subset: str, dataset_root: str, mini_version: bool):
-        super(NuscenesDataset, self).__init__()
+        super().__init__()
         self.nusc = self._get_nuscenes_instance(subset, dataset_root, mini_version)
         scene_names = splits.create_splits_scenes()[f'mini_{subset}' if mini_version else subset]
         self.scenes = [scene for scene in self.nusc.scene if scene['name'] in scene_names]

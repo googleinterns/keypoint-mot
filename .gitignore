@@ -1,0 +1,4 @@
+__pycache__/
+.idea/
+tests.py
+tests_j.ipynb

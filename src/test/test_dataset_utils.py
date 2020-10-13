@@ -9,8 +9,8 @@ class TestVideosIndexer(TestCase):
         self.video_indexer = VideosIndexer(self.video_list)
 
     def test_get_video_OutOfBounds(self):
-        self.assertRaises(ValueError, self.video_indexer.get_video_frame, -1)
-        self.assertRaises(ValueError, self.video_indexer.get_video_frame, 6)
+        self.assertRaisesRegex(ValueError, "Absolute frame index out of bounds", self.video_indexer.get_video_frame, -1)
+        self.assertRaisesRegex(ValueError, "Absolute frame index out of bounds", self.video_indexer.get_video_frame, 6)
 
     def test_get_video_InBounds(self):
         absolute_idx = 0

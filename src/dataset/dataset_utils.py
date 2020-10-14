@@ -1,6 +1,8 @@
 import bisect
 from typing import Any, List, Tuple
 
+import numpy as np
+
 
 class VideosIndexer:
     """
@@ -29,7 +31,7 @@ class VideosIndexer:
         """
         if absolute_frame_idx < 0 or absolute_frame_idx >= self.video_lengths[-1]:
             raise ValueError(f"Absolute frame index out of bounds."
-                             f"Got {absolute_frame_idx}, bounds are (0,{self.video_lengths[-1]}")
+                             f"Got {absolute_frame_idx}, bounds are (0,{self.video_lengths[-1]})")
 
         video_idx = bisect.bisect_right(self.video_lengths, absolute_frame_idx)
 
@@ -40,3 +42,28 @@ class VideosIndexer:
         frame_data = self.video_list[video_idx][relative_frame_idx]
 
         return video_idx, relative_frame_idx, frame_data
+
+
+def project_to_image(pts_3d, P):
+    # pts_3d: n x 3
+    # P: 3 x 4
+    # return: n x 2
+    pts_3d_homogen = np.concatenate([pts_3d, np.ones((pts_3d.shape[0], 1), dtype=np.float32)], axis=1)
+    pts_2d = np.dot(P, pts_3d_homogen.transpose(1, 0)).transpose(1, 0)
+    pts_2d = pts_2d[:, :2] / pts_2d[:, 2:]
+    return pts_2d
+
+
+def _rot_y2alpha(rot_y, x, cx, fx):
+    """
+    Get rotation_y by alpha + theta - 180
+    alpha : Observation angle of object, ranging [-pi..pi]
+    x : Object center x to the camera center (x-W/2), in pixels
+    rotation_y : Rotation ry around Y-axis in camera coordinates [-pi..pi]
+    """
+    alpha = rot_y - np.arctan2(x - cx, fx)
+    if alpha > np.pi:
+        alpha -= 2 * np.pi
+    if alpha < -np.pi:
+        alpha += 2 * np.pi
+    return alpha

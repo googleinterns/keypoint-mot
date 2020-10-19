@@ -33,6 +33,9 @@ class NuscenesDataset(generic_dataset.GenericDataset):
 
     max_objs = 128
 
+    nuscenes_att_range = {0: [0, 1], 1: [0, 1], 2: [2, 3, 4], 3: [2, 3, 4], 4: [2, 3, 4], 5: [5, 6, 7], 6: [5, 6, 7],
+                          7: [5, 6, 7]}
+
     def __init__(self, subset: str, dataset_root: str, opts: generic_dataset.DatasetOptions, mini_version: bool):
         super().__init__(subset, dataset_root, opts)
         self.nusc = self._get_nuscenes_instance(subset, dataset_root, mini_version)
@@ -142,6 +145,18 @@ class NuscenesDataset(generic_dataset.GenericDataset):
             else:
                 pass
         return visible_anns
+
+    def _add_instance(self, ret, gt_det, k, cls_id, bbox, bbox_amodal, ann, trans_output,
+                      aug_s, calib, pre_cts=None, track_ids=None):
+        super()._add_instance(ret, gt_det, k, cls_id, bbox, bbox_amodal, ann, trans_output,
+                              aug_s, calib, pre_cts, track_ids)
+
+        if 'nuscenes_att' in self.opt.heads:
+            if ('attributes' in ann) and ann['attributes'] > 0:
+                att = int(ann['attributes'] - 1)
+                ret['nuscenes_att'][k][att] = 1
+                ret['nuscenes_att_mask'][k][self.nuscenes_att_range[att]] = 1
+            gt_det['nuscenes_att'].append(ret['nuscenes_att'][k])
 
     def _get_videos(self, scenes, sensors):
         videos = []

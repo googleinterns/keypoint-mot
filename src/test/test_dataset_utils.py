@@ -32,25 +32,25 @@ class TestDatasetUtilsFunctions(TestCase):
                           [0., 0., 1., 0.]])
 
         point_2d = dataset_utils.project_to_image(point_3d, calib)
-        np.testing.assert_equal(point_2d, np.array([[7 / 3, 18 / 3]]))
+        np.testing.assert_allclose(point_2d, np.array([[7 / 3, 18 / 3]]))
 
     def test_rot_y2alpha(self):
-        self.assertEqual(dataset_utils.rot_y2alpha(np.pi / 4, -400, 1200, 1600), np.pi / 2)
+        self.assertAlmostEqual(dataset_utils.rot_y2alpha(np.pi / 4, -400, 1200, 1600), np.pi / 2)
 
     def test_draw_umich_gaussian(self):
         heatmap = np.zeros((5, 5))
         expected_heatmap = np.zeros((5, 5))
         expected_heatmap[2:, 2:] = dataset_utils.gaussian2D((3, 3), 0.5)
         drawn_heatmap = dataset_utils.draw_umich_gaussian(heatmap=heatmap, center=(3, 3), radius=1)
-        np.testing.assert_equal(drawn_heatmap, expected_heatmap)
+        np.testing.assert_allclose(drawn_heatmap, expected_heatmap)
 
     def test_gaussian2d(self):
         gaussian_row = dataset_utils.gaussian2D((1, 3), sigma=1)
         gaussian_col = dataset_utils.gaussian2D((3, 1), sigma=1)
         computed_gaussian = dataset_utils.gaussian2D((3, 3), sigma=1)
-        np.testing.assert_equal(gaussian_row, [[np.exp(-0.5), 1.0, np.exp(-0.5)]])
-        np.testing.assert_equal(gaussian_row.T, gaussian_col)
-        np.testing.assert_equal(computed_gaussian, np.dot(gaussian_col, gaussian_row))
+        np.testing.assert_allclose(gaussian_row, [[np.exp(-0.5), 1.0, np.exp(-0.5)]])
+        np.testing.assert_allclose(gaussian_row.T, gaussian_col)
+        np.testing.assert_allclose(computed_gaussian, np.dot(gaussian_col, gaussian_row))
 
     def test_gaussian_radius(self):
         rad = dataset_utils.gaussian_radius((10, 20), 0.5)
@@ -59,7 +59,7 @@ class TestDatasetUtilsFunctions(TestCase):
     def test_affine_transform(self):
         point = np.array([10., 10.])
         transformed_point = dataset_utils.affine_transform(point, np.eye(2, 3))
-        np.testing.assert_equal(point, transformed_point)
+        np.testing.assert_allclose(point, transformed_point)
 
     def test_get_affine_transform(self):
         transform = dataset_utils.get_affine_transform(center=np.array([900, 400]), scale=np.array([1920, 1920]), rot=0,

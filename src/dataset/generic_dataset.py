@@ -43,6 +43,9 @@ class DatasetOptions:
     max_frame_dist: int = 3  # skip at most max_frame_dist-1 frames when loading previous image
 
 
+IGNORED_CLASS_ID = -99
+
+
 class GenericDataset:
     """Superclass for the used datasets"""
     video_indexer: dataset_utils.VideosIndexer
@@ -56,6 +59,7 @@ class GenericDataset:
     num_joints = 17
     flip_idx = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12], [13, 14], [15, 16]]
 
+    # https://github.com/xingyizhou/CenterTrack/blob/master/src/lib/dataset/generic_dataset.py#L39
     mean = np.array([0.40789654, 0.44719302, 0.47026115], dtype=np.float32).reshape((1, 1, 3))
     std = np.array([0.28863828, 0.27408164, 0.27809835], dtype=np.float32).reshape((1, 1, 3))
 
@@ -80,8 +84,10 @@ class GenericDataset:
 
         height, width = img.shape[0], img.shape[1]
         c = np.array([img.shape[1] / 2., img.shape[0] / 2.], dtype=np.float32)
-        s = max(img.shape[0], img.shape[1]) * 1.0 if not self.opt.not_max_crop \
-            else np.array([img.shape[1], img.shape[0]], np.float32)
+        if self.opt.not_max_crop:
+            s = np.array([img.shape[1], img.shape[0]], np.float32)
+        else:
+            s = max(img.shape[0], img.shape[1]) * 1.0
         aug_s, rot, flipped = 1, 0, 0
 
         if self.subset == 'train':
@@ -129,7 +135,7 @@ class GenericDataset:
         for k in range(num_objs):
             ann = anns[k]
             cls_id = int(ann['category_id'])
-            if cls_id > self.num_classes or cls_id <= -999:
+            if cls_id > self.num_classes or cls_id <= IGNORED_CLASS_ID:
                 continue
             bbox, bbox_amodal = self._get_bbox_output(ann['bbox'], trans_output, height, width)
             if cls_id <= 0 or ('iscrowd' in ann and ann['iscrowd'] > 0):
@@ -156,7 +162,7 @@ class GenericDataset:
 
                 frame_abs += 1
 
-        raise Exception
+        raise FileNotFoundError(f'Could not find file {filename}')
 
     def _add_instance(self, ret, gt_det, k, cls_id, bbox, bbox_amodal, ann, trans_output,
                       aug_s, calib, pre_cts=None, track_ids=None):
@@ -446,7 +452,7 @@ class GenericDataset:
         pre_cts, track_ids = [], []
         for ann in anns:
             cls_id = ann['category_id']
-            if cls_id > self.num_classes or cls_id <= -99 or ('iscrowd' in ann and ann['iscrowd'] > 0):
+            if cls_id > self.num_classes or cls_id <= IGNORED_CLASS_ID or ('iscrowd' in ann and ann['iscrowd'] > 0):
                 continue
             bbox = self._coco_box_to_bbox(ann['bbox'])
             bbox[:2] = dataset_utils.affine_transform(bbox[:2], trans)

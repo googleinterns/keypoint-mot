@@ -58,10 +58,11 @@ def project_to_image(pts_3d, P):
 
 def rot_y2alpha(rot_y, x, cx, fx):
     """
-    Get rotation_y by alpha + theta - 180
-    alpha : Observation angle of object, ranging [-pi..pi]
-    x : Object center x to the camera center (x-W/2), in pixels
-    rotation_y : Rotation ry around Y-axis in camera coordinates [-pi..pi]
+    Get observation angle of object, ranging [-pi..pi]
+    rot_y : Rotation around y-axis in camera coordinates [-pi..pi]
+    x : x-axis object center, in pixels
+    cx: x-axis optical center of camera, in pixels
+    fx: x-axis camera focal length, in pixels
     """
     alpha = rot_y - np.arctan2(x - cx, fx)
     if alpha > np.pi:
@@ -72,6 +73,10 @@ def rot_y2alpha(rot_y, x, cx, fx):
 
 
 def draw_umich_gaussian(heatmap, center, radius, k=1):
+    """
+    https://github.com/princeton-vl/CornerNet/issues/110
+    Draw the gaussian activations on the heatmap for the given object's center.
+    """
     diameter = 2 * radius + 1
     gaussian = gaussian2D((diameter, diameter), sigma=diameter / 6)
 
@@ -98,6 +103,10 @@ def gaussian2D(shape, sigma=1):
 
 
 def gaussian_radius(det_size, min_overlap=0.7):
+    """
+    https://github.com/princeton-vl/CornerNet/issues/110
+    Compute the gaussian radius for a given bounding box size.
+    """
     height, width = det_size
 
     a1 = 1

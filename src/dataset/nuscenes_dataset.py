@@ -136,8 +136,9 @@ class NuscenesDataset(generic_dataset.GenericDataset):
         for i in range(len(anns)):
             vis = True
             for j in range(len(anns)):
-                if anns[i]['depth'] - min(anns[i]['dim']) / 2 > anns[j]['depth'] + max(
-                        anns[j]['dim']) / 2 and _bbox_inside(anns[i]['bbox'], anns[j]['bbox']):
+                depth_i = anns[i]['depth'] - min(anns[i]['dim']) / 2
+                depth_j = anns[j]['depth'] + max(anns[j]['dim']) / 2
+                if depth_i > depth_j and _bbox_inside(anns[i]['bbox'], anns[j]['bbox']):
                     vis = False
                     break
             if vis:

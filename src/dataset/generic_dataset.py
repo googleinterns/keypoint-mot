@@ -5,6 +5,7 @@ from typing import Any, List, Tuple
 
 import cv2
 import numpy as np
+import tensorflow as tf
 
 from config import config
 from dataset import dataset_utils
@@ -71,11 +72,41 @@ class GenericDataset:
         [-0.5832747, 0.00994535, -0.81221408],
         [-0.56089297, 0.71832671, 0.41158938]], dtype=np.float32)
 
+    return_dtypes = {'image':         tf.float32, 'pre_img': tf.float32, 'pre_hm': tf.float32, 'hm': tf.float32,
+                     'ind':           tf.int64, 'cat': tf.int64, 'mask': tf.float32, 'reg': tf.float32,
+                     'reg_mask':      tf.float32, 'wh': tf.float32, 'wh_mask': tf.float32, 'tracking': tf.float32,
+                     'tracking_mask': tf.float32, 'dep': tf.float32, 'dep_mask': tf.float32, 'dim': tf.float32,
+                     'dim_mask':      tf.float32, 'amodel_offset': tf.float32, 'amodel_offset_mask': tf.float32,
+                     'rotbin':        tf.int64, 'rotres': tf.float32, 'rot_mask': tf.float32}
+    return_dtypes_key_list = list(return_dtypes.keys())
+
     def __init__(self, subset: str, dataset_root: str, opt: DatasetOptions):
         self.subset = subset
         self.dataset_root = dataset_root
         self._data_rng = np.random.RandomState(123)
         self.opt = opt
+
+    def get_input_generator(self, shuffle=False, dataset_len: int = None):
+        """Usage: Dataset.from_generator(dataset_instance.get_input_generator(args),
+                                         output_types=dataset_instance.return_dtypes)"""
+        if dataset_len is None:
+            dataset_len = self.video_indexer.video_lengths[-1]
+        dataset = tf.data.Dataset.range(dataset_len)
+        if shuffle:
+            dataset = dataset.shuffle(buffer_size=dataset_len, reshuffle_each_iteration=True)
+
+        def gen_func():
+            for i in dataset:
+                yield self.get_input(i)
+
+        return gen_func
+
+    def get_input_py_func(self, frame_idx):
+        """Usage: Dataset.range(dataset_len).map(map_func=dataset_instance.get_input_py_func,
+                                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)"""
+        ret = tf.py_function(func=lambda i: list(self.get_input(i).values()), inp=[frame_idx],
+                             Tout=list(self.return_dtypes.values()))
+        return {key: ret[i] for i, key in enumerate(self.return_dtypes_key_list)}
 
     def get_input(self, frame_idx):
         frame_idx = frame_idx.numpy()

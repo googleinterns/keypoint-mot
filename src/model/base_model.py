@@ -1,21 +1,26 @@
+from dataclasses import dataclass
+from typing import Dict, List
+
 import tensorflow as tf
 from tensorflow.keras import layers
 
 
-def fill_fc_weights(fc):
-    if isinstance(fc, tf.keras.Sequential):
-        all_layers = fc.layers
-    else:
-        all_layers = fc
-
-    for m in all_layers:
-        if isinstance(m, layers.Conv2D):
-            if m.use_bias:
-                m.bias_initialier = tf.keras.initializers.constant(0)
+@dataclass
+class BaseModelOptions:
+    head_kernel: int  # kernel convolution sizes
+    prior_bias: float  # bias for hm head last layer
+    model_output_list: bool  # if true, the networks output is a list of lists instead of list of dicts
 
 
 class BaseModel(tf.keras.Model):
-    def __init__(self, heads, head_convs, num_stacks, opt=None):
+    def __init__(self, heads: Dict[str, int], head_convs: Dict[str, List[int]], num_stacks: int,
+                 opt: BaseModelOptions = None):
+        """
+        heads: Dict[str, int] - head name: corresponding number of output classes
+        head_convs: Dict[str, List[int]] - head name: list with number of output channels for each convolution
+        num_stacks: int - how many times the output is replicated in the output list
+        opt - object with following attributes:
+        """
         super().__init__()
         if opt is not None and opt.head_kernel != 3:
             print('Using head kernel:', opt.head_kernel)
@@ -61,7 +66,7 @@ class BaseModel(tf.keras.Model):
         raise NotImplementedError
 
     def call(self, x, pre_img=None, pre_hm=None):
-        """all inputs should be given in channels_last format i.e. (batch x channels x height x width) tensors"""
+        """all inputs should be given in channels_first format i.e. (batch x channels x height x width) tensors"""
         if (pre_hm is not None) or (pre_img is not None):
             feats = self.imgpre2feats(x, pre_img, pre_hm)
         else:

@@ -8,8 +8,8 @@ from tensorflow.keras import layers
 @dataclass
 class BaseModelOptions:
     head_kernel: int  # kernel convolution sizes
-    prior_bias: float  # bias for hm head last layer
-    model_output_list: bool  # if true, the networks output is a list of lists instead of list of dicts
+    prior_bias: float  # bias for hm head in the last layer
+    model_output_list: bool  # if true, the network's output is a list of lists instead of list of dicts
 
 
 class BaseModel(tf.keras.Model):
@@ -19,7 +19,7 @@ class BaseModel(tf.keras.Model):
         heads: Dict[str, int] - head name: corresponding number of output classes
         head_convs: Dict[str, List[int]] - head name: list with number of output channels for each convolution
         num_stacks: int - how many times the output is replicated in the output list
-        opt - object with following attributes:
+        opt: BaseModelOptions
         """
         super().__init__()
         if opt is not None and opt.head_kernel != 3:

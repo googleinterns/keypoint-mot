@@ -81,7 +81,7 @@ class CustomConv2d(layers.Conv2D):
 
 class BasicBlock(tf.keras.Model):
     def __init__(self, planes, stride=1, dilation=1):
-        super(BasicBlock, self).__init__()
+        super().__init__()
         self.conv1 = CustomConv2d(planes, kernel_size=3,
                                   strides=stride, padding=dilation,
                                   use_bias=False, dilation_rate=dilation, data_format='channels_first')
@@ -112,7 +112,7 @@ class BasicBlock(tf.keras.Model):
 
 class Root(tf.keras.Model):
     def __init__(self, out_channels, kernel_size, residual):
-        super(Root, self).__init__()
+        super().__init__()
         self.conv = CustomConv2d(
                 out_channels, 1,
                 strides=1, use_bias=False, padding=(kernel_size - 1) // 2, data_format='channels_first')
@@ -134,7 +134,7 @@ class Root(tf.keras.Model):
 class Tree(tf.keras.Model):
     def __init__(self, levels, block, in_channels, out_channels, stride=1, level_root=False, root_dim=0,
                  root_kernel_size=1, dilation=1, root_residual=False):
-        super(Tree, self).__init__()
+        super().__init__()
         if root_dim == 0:
             root_dim = 2 * out_channels
         if level_root:
@@ -181,7 +181,7 @@ class Tree(tf.keras.Model):
 class DLA(tf.keras.Model):
     def __init__(self, levels, channels, num_classes=1000, block=BasicBlock, residual_root=False, linear_root=False,
                  opt=None):
-        super(DLA, self).__init__()
+        super().__init__()
         self.channels = channels
         self.num_classes = num_classes
         self.base_layer = tf.keras.Sequential([
@@ -274,7 +274,7 @@ class DeformConvUnit(layers.Layer):
 
 class DeformConv(tf.keras.Model):
     def __init__(self, channels_out):
-        super(DeformConv, self).__init__()
+        super().__init__()
         self.actf = tf.keras.Sequential([
             BatchNorm2d(momentum=BN_MOMENTUM),
             layers.ReLU()
@@ -289,7 +289,7 @@ class DeformConv(tf.keras.Model):
 
 class IDAUp(tf.keras.Model):
     def __init__(self, o, channels, up_f, node_type=(DeformConv, DeformConv)):
-        super(IDAUp, self).__init__()
+        super().__init__()
         for i in range(1, len(channels)):
             c = channels[i]
             f = int(up_f[i])
@@ -315,9 +315,8 @@ class IDAUp(tf.keras.Model):
 
 
 class DLAUp(tf.keras.Model):
-    def __init__(self, startp, channels, scales, in_channels=None,
-                 node_type=DeformConv):
-        super(DLAUp, self).__init__()
+    def __init__(self, startp, channels, scales, in_channels=None, node_type=(DeformConv, DeformConv)):
+        super().__init__()
         self.startp = startp
         if in_channels is None:
             in_channels = channels

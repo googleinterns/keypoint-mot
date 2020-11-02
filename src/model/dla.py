@@ -251,6 +251,13 @@ class DeformConvUnit(layers.Layer):
     def __init__(self, channels, kernel_size, strides, padding):
         super().__init__()
         import tensorflow_addons as tfa
+        # until pull request https://github.com/tensorflow/addons/pull/2196 is merged into master,
+        # tensorflow_addons should be built from source https://github.com/Licht-T/addons/tree/add-deformable-conv
+        # WARNING: when checking out the repo, the code is on add-deformable-conv branch
+        # WARNING: if a "symbol not found" error appears at module load after building, add
+        #          --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" option when building with bazel
+        # build instructions (take care to change the repo and checkout the correct branch):
+        # https://github.com/tensorflow/addons#gpu-and-cpu-custom-ops
         self.deform_conv = tfa.layers.DeformableConv2D(channels, kernel_size=(3, 3), use_bias=True, padding='SAME',
                                                        use_mask=True)
         channels_ = 1 * 3 * kernel_size[0] * kernel_size[1]

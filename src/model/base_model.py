@@ -32,12 +32,12 @@ class BaseModel(tf.keras.Model):
         for head in self.heads:
             classes = self.heads[head]
             head_conv = head_convs[head]
-            if len(head_conv) > 0:
+            if head_conv:
                 out = layers.Conv2D(classes,
-                                    kernel_size=1, strides=1, padding='valid', use_bias=True,
+                                    kernel_size=1, strides=1, padding='valid', use_bias=True, bias_initializer='zeros',
                                     data_format='channels_first')
                 conv = layers.Conv2D(head_conv[0], kernel_size=head_kernel, padding='same', use_bias=True,
-                                     data_format='channels_first')
+                                     bias_initializer='zeros', data_format='channels_first')
                 convs = [conv, layers.ReLU()]
                 for k in range(1, len(head_conv)):
                     convs.extend(
@@ -46,17 +46,12 @@ class BaseModel(tf.keras.Model):
                 convs.append(out)
                 fc = tf.keras.Sequential(convs)
                 if 'hm' in head:
-                    fc.layers[-1].bias_initizlier = tf.keras.initializers.constant(opt.prior_bias)
-                else:
-                    fill_fc_weights(fc)
-                    pass
+                    fc.layers[-1].bias_initializer = tf.keras.initializers.constant(opt.prior_bias)
             else:
-                fc = layers.Conv2D(classes, kernel_size=1, strides=1, padding='valid', use_bias=True)
+                fc = layers.Conv2D(classes, kernel_size=1, strides=1, padding='valid', use_bias=True,
+                                   bias_initializer='zeros')
                 if 'hm' in head:
-                    fc.bias.data.fill_(opt.prior_bias)
-                else:
-                    fill_fc_weights(fc)
-                    pass
+                    fc.bias_initializer = tf.keras.initializers.constant(opt.prior_bias)
             self.__setattr__(head, fc)
 
     def img2feats(self, x):
@@ -76,7 +71,7 @@ class BaseModel(tf.keras.Model):
             for s in range(self.num_stacks):
                 z = []
                 for head in sorted(self.heads):
-                    z.append(self.__getattr__(head)(feats[s]))
+                    z.append(self.__getattribute__(head)(feats[s]))
                 out.append(z)
         else:
             for s in range(self.num_stacks):

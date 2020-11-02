@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
@@ -345,9 +347,20 @@ DLA_NODE = {
     'dcn': (DeformConv, DeformConv)
 }
 
+DLA_FACTORY = {
+    'dla34': dla34
+}
+
+
+@dataclass
+class DLASegOptions(base_model.BaseModelOptions):
+    pre_img: bool  # True if previous image is given as input
+    pre_hm: bool  # True if previous heatmap is given as input
+    dla_node: str = 'dcn'  # DLA used node type
+
 
 class DLASeg(base_model.BaseModel):
-    def __init__(self, num_layers, heads, head_convs, opt):
+    def __init__(self, num_layers, heads, head_convs, opt: DLASegOptions):
         super().__init__(heads, head_convs, 1, opt=opt)
         down_ratio = 4
         self.opt = opt
@@ -355,7 +368,7 @@ class DLASeg(base_model.BaseModel):
         print('Using node type:', self.node_type)
         self.first_level = int(np.log2(down_ratio))
         self.last_level = 5
-        self.base = globals()['dla{}'.format(num_layers)](opt=opt)
+        self.base = DLA_FACTORY[f'dla{num_layers}'](opt=opt)
 
         channels = self.base.channels
         scales = [2 ** i for i in range(len(channels[self.first_level:]))]

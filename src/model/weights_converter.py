@@ -1,8 +1,11 @@
 import logging
-from typing import NamedTuple
+from typing import Any, List, NamedTuple, Tuple
 
 import numpy as np
 import tensorflow as tf
+import torch
+
+from model import base_model, dla
 
 
 class WeightHandlerReturn(NamedTuple):
@@ -139,3 +142,93 @@ class PytorchToTensorflowHandlers:
                 return WeightHandlerReturn(processed=True, matched_source=True, matched_target=False)
 
             return WeightHandlerReturn(processed=False, matched_source=False, matched_target=False)
+
+
+class WeightsConverter:
+    """
+    Deals with conversion of the source model's weights to the target model's weights.
+       Args:
+           source_weights: List[Any] - the weights that need to be transferred
+           target_weights: List[Any] - the weights which need to receive the transfer
+           weight_handler: WeighthHandler - handles a specific weight pair conversion
+           silent_fail: bool - if True, when a pair of weights could not be handled, no exception is thrown.
+    """
+
+    def __init__(self, source_weights: List[Any], target_weights: List[Any], weight_handler: WeightHandler,
+                 silent_fail: bool = False):
+        self.source_weights = source_weights
+        self.target_weights = target_weights
+        self.weight_handler = weight_handler
+        self.silent_fail = silent_fail
+
+    def do_conversion(self):
+        """Iterates over the weight lists and does the conversion."""
+        source_idx = 0
+        target_idx = 0
+
+        while target_idx < len(self.target_weights):
+            source_weight = self.source_weights[source_idx]
+            target_weight = self.target_weights[target_idx]
+            handle_result = self.weight_handler(source_weight, target_weight)
+            if handle_result.processed:
+                source_idx += handle_result.matched_source
+                target_idx += handle_result.matched_target
+            else:
+                if not self.silent_fail:
+                    raise Warning(f'{target_weight} could not be matched with {source_weight}')
+
+    def __call__(self):
+        self.do_conversion()
+
+
+class DLASegConverter(WeightsConverter):
+    """Class used for loading pytorch weights in tensorflow for DLASeg."""
+
+    @staticmethod
+    def get_DLASeg_weights_handler() -> WeightHandler:
+        """Returns the handler used in the conversion."""
+        handler = PytorchToTensorflowHandlers.SameShapeHandler()
+        handler.then(PytorchToTensorflowHandlers.ConvolutionHandler()).then(
+                PytorchToTensorflowHandlers.DepthwiseTransposedConvolutionHandler()).then(
+                PytorchToTensorflowHandlers.BatchNormalizationSkipExtraHandler())
+        return handler
+
+    @staticmethod
+    def get_weights_list_pytorch(filename: str) -> List[Tuple[str, torch.Tensor]]:
+        """Loads the .pth weights from the given filename, on cpu."""
+        weights = torch.load(filename, map_location=torch.device('cpu'))
+        weights = weights['state_dict']
+        weights = list(weights.items())
+        return weights
+
+    @staticmethod
+    def get_weights_list_tensorflow(model: base_model.BaseModel, batch_size: int, input_height: int,
+                                    input_width: int) -> List[tf.Variable]:
+        """Given a base_model.BaseModel model and the input shape, int constructs and returns the list with model's
+        weights."""
+        img = tf.zeros((batch_size, 3, input_height, input_width), tf.float32)
+        pre_img = tf.zeros_like(img)
+        pre_hm = tf.zeros((batch_size, 1, input_height, input_width), tf.float32)
+        model(img, pre_img, pre_hm)  # construct the weights
+        return model.weights
+
+    @staticmethod
+    def get_logger(logging_level=logging.WARNING) -> logging.Logger:
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging_level)
+        logger.addHandler(logging.StreamHandler())
+        return logger
+
+    def __init__(self, pytorch_pth_path: str, model: dla.DLASeg, batch_size: int, input_height: int, input_width: int):
+        """
+        Args:
+            pytorch_pth_path: str - path to .pth file holding pytorch weights (result of a .state_dict() call)
+            model: dla.DLASeg - tensorflow model instance
+            batch_size, input_height, input_width: int - input characteristics for the tensorflow model
+        """
+        pytorch_weights = self.get_weights_list_pytorch(pytorch_pth_path)
+        tensorflow_weights = self.get_weights_list_tensorflow(model, batch_size, input_height, input_width)
+        handler = self.get_DLASeg_weights_handler()
+        handler.set_chain_logger(self.get_logger(logging.INFO))
+        super().__init__(source_weights=pytorch_weights, target_weights=tensorflow_weights, weight_handler=handler,
+                         silent_fail=False)

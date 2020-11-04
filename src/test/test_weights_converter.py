@@ -142,3 +142,35 @@ class TestBatchNormalizationSkipExtraHandler(TestCase):
 
         expected_res = weights_converter.WeightHandlerReturn(processed=True, matched_source=True, matched_target=False)
         self.assertEqual(res, expected_res)
+
+
+class TestWeightsConverter(TestCase):
+    def test_do_conversion(self):
+        in_channels = 3
+        kernel_size = 3
+        out_channels = 5
+        eps = 0.001
+        inp = np.ones((1, in_channels, 15, 15), dtype=np.float32)
+
+        model_tensorflow = tf.keras.Sequential([
+            tf.keras.layers.Conv2D(out_channels, kernel_size, use_bias=True, data_format='channels_first'),
+            tf.keras.layers.BatchNormalization(axis=1, epsilon=eps),
+            tf.keras.layers.Conv2DTranspose(out_channels, kernel_size, use_bias=True, data_format='channels_first')])
+        model_tensorflow.trainable = False
+        model_tensorflow(inp)
+
+        model_pytorch = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels, out_channels, kernel_size, bias=True),
+                torch.nn.BatchNorm2d(out_channels, eps=eps),
+                torch.nn.ConvTranspose2d(out_channels, out_channels, kernel_size, bias=True, groups=out_channels))
+        model_pytorch.train(False)
+
+        for layer in model_pytorch:
+            layer.weight.uniform_()
+
+        handler = weights_converter.DLASegConverter.get_DLASeg_weights_handler()
+        converter = weights_converter.WeightsConverter(list(model_pytorch.state_dict().items()),
+                                                       model_tensorflow.weights, handler, silent_fail=False)
+        converter.do_conversion()
+
+        np.testing.assert_allclose(model_tensorflow(inp).numpy(), model_pytorch(torch.tensor(inp)).numpy(), rtol=1e-5)

@@ -116,17 +116,20 @@ class PytorchToTensorflowHandlers:
             weight_tf, name_tf, shape_tf = PytorchToTensorflowHandlers._preprocess_tensorflow(target_weight)
             weight_py, name_py, shape_py = PytorchToTensorflowHandlers._preprocess_pytorch(source_weight)
 
-            if 'conv2d_transpose' in name_tf and shape_tf[:2] == shape_py[2:] and shape_tf[3] == shape_py[0] and \
-                    shape_py[1] == 1:
-                gen_weights = np.zeros(shape_tf, dtype=np.float32)
-                py_transposed = weight_py.numpy().transpose(2, 3, 1, 0)
-                for ch in range(shape_tf[2]):
-                    gen_weights[:, :, ch, ch] = py_transposed[:, :, 0, ch]
-                weight_tf.assign(tf.convert_to_tensor(gen_weights))
+            if len(shape_tf) == len(shape_py) == 4:
+                equal_height_width = (shape_tf[:2] == shape_py[2:])
+                equal_out_channels = (shape_tf[3] == shape_py[0])
+                depthwise_conv_py = (shape_py[1] == 1)
+                if 'conv2d_transpose' in name_tf and equal_height_width and equal_out_channels and depthwise_conv_py:
+                    gen_weights = np.zeros(shape_tf, dtype=np.float32)
+                    py_transposed = weight_py.numpy().transpose(2, 3, 1, 0)
+                    for ch in range(shape_tf[2]):
+                        gen_weights[:, :, ch, ch] = py_transposed[:, :, 0, ch]
+                    weight_tf.assign(tf.convert_to_tensor(gen_weights))
 
-                if self.logger:
-                    self.logger.info(f'{name_tf} was assigned successfully from {name_py}, depthwise convolution')
-                return WeightHandlerReturn(processed=True, matched_source=True, matched_target=True)
+                    if self.logger:
+                        self.logger.info(f'{name_tf} was assigned successfully from {name_py}, depthwise convolution')
+                    return WeightHandlerReturn(processed=True, matched_source=True, matched_target=True)
 
             return WeightHandlerReturn(processed=False, matched_source=False, matched_target=False)
 
@@ -204,7 +207,7 @@ class DLASegConverter(WeightsConverter):
     @staticmethod
     def get_weights_list_tensorflow(model: base_model.BaseModel, batch_size: int, input_height: int,
                                     input_width: int) -> List[tf.Variable]:
-        """Given a base_model.BaseModel model and the input shape, int constructs and returns the list with model's
+        """Given a base_model.BaseModel model and the input shape, it constructs and returns the list with model's
         weights."""
         img = tf.zeros((batch_size, 3, input_height, input_width), tf.float32)
         pre_img = tf.zeros_like(img)

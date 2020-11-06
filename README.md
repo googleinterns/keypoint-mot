@@ -44,7 +44,7 @@ bazel-bin/build_pip_pkg artifacts
 pip install artifacts/tensorflow_addons-*.whl
 ```
 
-#Usage
+# Usage
 To instantiate CenterTrack (DLASeg instance), below is a usual configuration:
 ```
 heads = {'hm': 10, 'reg': 2, 'wh': 2, 'tracking': 2, 'dep': 1,
@@ -60,7 +60,7 @@ For data loading, there are two options:
 - `Dataset.from_generator(dataset_instance.get_input_generator(args), output_types=dataset_instance.return_dtypes)`
 - `Dataset.range(dataset_len).map(map_func=dataset_instance.get_input_py_func, num_parallel_calls=tf.data.experimental.AUTOTUNE)`
 
-#Acknowledgement
+# Acknowledgement
 The code is based on the official [CenterTrack](https://github.com/xingyizhou/CenterTrack) pytorch implementation,
 released under MIT License. Please see the NOTICE for details.
 

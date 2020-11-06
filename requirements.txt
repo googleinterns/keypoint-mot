@@ -99,7 +99,6 @@ scipy==1.5.2
 Send2Trash==1.5.0
 Shapely==1.7.1
 six==1.15.0
-sklearn==0.0
 tensorboard==2.3.0
 tensorboard-plugin-wit==1.7.0
 tensorflow==2.3.1

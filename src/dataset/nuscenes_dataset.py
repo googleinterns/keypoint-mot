@@ -29,8 +29,9 @@ class NuscenesDataset(generic_dataset.GenericDataset):
     class_name = ['car', 'truck', 'bus', 'trailer', 'construction_vehicle', 'pedestrian', 'motorcycle', 'bicycle',
                   'traffic_cone', 'barrier']
     num_classes = len(class_name)
+    num_categories = num_classes
     cat_ids = {v: i + 1 for i, v in enumerate(class_name)}
-
+    default_resolution = [448, 800]
     max_objs = 128
 
     nuscenes_att_range = {0: [0, 1], 1: [0, 1], 2: [2, 3, 4], 3: [2, 3, 4], 4: [2, 3, 4], 5: [5, 6, 7], 6: [5, 6, 7],
@@ -50,8 +51,9 @@ class NuscenesDataset(generic_dataset.GenericDataset):
         _, boxes, camera_intrinsic = self.nusc.get_sample_data(sample_data_token,
                                                                box_vis_level=geometry_utils.BoxVisibility.ANY)
         calibration = self._get_calibration_matrix(camera_intrinsic)
-
+        frame_path = os.path.join(self.dataset_root, frame_sample_data['filename'])
         image_info = {'file_name':         frame_sample_data['filename'],
+                      'img_path':          frame_path,
                       'calib':             calibration.tolist(),
                       'trans_matrix':      trans_matrix.tolist(),
                       'width':             frame_sample_data['width'],
@@ -59,7 +61,8 @@ class NuscenesDataset(generic_dataset.GenericDataset):
                       'pose_record_trans': pose_data['translation'],
                       'pose_record_rot':   pose_data['rotation'],
                       'cs_record_trans':   cal_sensor_data['translation'],
-                      'cs_record_rot':     cal_sensor_data['rotation']}
+                      'cs_record_rot':     cal_sensor_data['rotation'],
+                      'id':                sample_data_token}
 
         annotations = self._get_annotations(boxes, calibration, camera_intrinsic, trans_matrix)
 

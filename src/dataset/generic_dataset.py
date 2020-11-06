@@ -77,7 +77,14 @@ class GenericDataset:
                      'reg_mask':      tf.float32, 'wh': tf.float32, 'wh_mask': tf.float32, 'tracking': tf.float32,
                      'tracking_mask': tf.float32, 'dep': tf.float32, 'dep_mask': tf.float32, 'dim': tf.float32,
                      'dim_mask':      tf.float32, 'amodel_offset': tf.float32, 'amodel_offset_mask': tf.float32,
-                     'rotbin':        tf.int64, 'rotres': tf.float32, 'rot_mask': tf.float32}
+                     'rotbin':        tf.int64, 'rotres': tf.float32, 'rot_mask': tf.float32, 'meta': {
+            'gt_det': {'bboxes':        tf.float32, 'scores': tf.float32, 'clses': tf.float32,
+                       'cts':           tf.float32, 'reg': tf.float32, 'wh': tf.float32,
+                       'tracking':      tf.float32, 'dep': tf.float32, 'dim': tf.float32,
+                       'amodel_offset': tf.float32, 'rot': tf.float32}, 'c': tf.float32, 's': tf.float64,
+            'img_id': tf.string,
+            'img_path': tf.string, 'calib': tf.float32,
+            'flipped': tf.int32}}
     return_dtypes_key_list = list(return_dtypes.keys())
 
     def __init__(self, subset: str, dataset_root: str, opt: DatasetOptions):
@@ -85,6 +92,9 @@ class GenericDataset:
         self.dataset_root = dataset_root
         self._data_rng = np.random.RandomState(123)
         self.opt = opt
+        np.random.seed(42)
+        import random
+        random.seed(42)
 
     def get_input_generator(self, shuffle=False, dataset_len: int = None):
         """Usage: Dataset.from_generator(dataset_instance.get_input_generator(args),
@@ -177,6 +187,11 @@ class GenericDataset:
                     trans_output, aug_s,
                     calib, pre_cts, track_ids)
 
+        gt_det = self._format_gt_det(gt_det)
+        meta = {'c':        c, 's': s, 'gt_det': gt_det, 'img_id': img_info['id'],
+                'img_path': img_info['img_path'], 'calib': calib,
+                'flipped':  flipped}
+        ret['meta'] = meta
         return ret
 
     def _get_specific_nuscenes_frame_debug(self, idx):
@@ -548,5 +563,21 @@ class GenericDataset:
             i *= 2
         return border // i
 
+    def __len__(self):
+        return self.video_indexer.video_lengths[-1]
+
     def _pre_process_input(self, frame_idx) -> Tuple[Any, Any, Any]:
         raise NotImplementedError
+
+    def _format_gt_det(self, gt_det):
+        if (len(gt_det['scores']) == 0):
+            gt_det = {'bboxes':        np.array([[0, 0, 1, 1]], dtype=np.float32),
+                      'scores':        np.array([1], dtype=np.float32),
+                      'clses':         np.array([0], dtype=np.float32),
+                      'cts':           np.array([[0, 0]], dtype=np.float32),
+                      'pre_cts':       np.array([[0, 0]], dtype=np.float32),
+                      'tracking':      np.array([[0, 0]], dtype=np.float32),
+                      'bboxes_amodal': np.array([[0, 0]], dtype=np.float32),
+                      'hps':           np.zeros((1, 17, 2), dtype=np.float32), }
+        gt_det = {k: np.array(gt_det[k], dtype=np.float32) for k in gt_det}
+        return gt_det

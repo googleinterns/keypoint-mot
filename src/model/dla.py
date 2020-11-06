@@ -298,6 +298,7 @@ class IDAUp(tf.keras.Model):
             proj = node_type[0](o)
             node = node_type[1](o)
 
+            # originally a depthwise convolution is used, the groups parameter currently has no effect.
             up = layers.Conv2DTranspose(o, f * 2, strides=f, padding='same', use_bias=False,
                                         data_format='channels_first', groups=o)
 

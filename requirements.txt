@@ -120,7 +120,7 @@ typing-extensions==3.7.4.3
 urllib3==1.25.10
 wcwidth==0.2.5
 webencodings==0.5.1
-Werkzeug==1.0.1
+Werkzeug==3.0.1
 widgetsnbextension==3.5.1
 wrapt==1.12.1
 yarl==1.6.0

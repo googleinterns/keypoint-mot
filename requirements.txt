@@ -124,4 +124,4 @@ Werkzeug==1.0.1
 widgetsnbextension==3.5.1
 wrapt==1.12.1
 yarl==1.6.0
-zipp==3.2.0
+zipp==3.19.1
